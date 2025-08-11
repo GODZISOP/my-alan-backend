@@ -454,6 +454,9 @@ app.post('/api/contact', async (req, res) => {
 });
 
 // Start server
+app.get('/', (req, res) => {
+  res.send('✅ SpeskOn Backend is running!');
+});
 app.listen(PORT, () => {
   console.log(`🚀 SpeskOn AI Assistant running on port ${PORT}`);
   console.log(`🌟 Optimized for speed and stability`);
