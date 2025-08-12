@@ -18,7 +18,6 @@ const conversationHistory = new Map();
 
 // Middleware
 const allowedOrigins = [
-  'http://localhost:5173',
   'https://alan-three.vercel.app'
 ];
 
