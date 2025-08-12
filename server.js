@@ -342,7 +342,7 @@ app.post('/api/book-meeting', async (req, res) => {
 
     const businessEmailOptions = {
       from: `"Chris Spiritual Coaching" <appointmentstudio1@gmail.com>`,
-      to: 'crosenwirth@gmail.com',
+      to: 'appointmentstudio1@gmail.com>',
       subject: '🎯 New Qualified Lead - Meeting Booking Request',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
@@ -398,7 +398,7 @@ app.post('/api/contact', async (req, res) => {
 
     const businessEmailOptions = {
       from: `"Chris Spiritual Coaching" <appointmentstudio1@gmail.com>`,
-      to: 'crosenwirth@gmail.com',
+      to: 'appointmentstudio1@gmail.com>',
       subject: '📧 New Contact Form Submission',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
