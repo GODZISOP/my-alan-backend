@@ -21,8 +21,6 @@ const allowedOrigins = [
   'https://alan-three.vercel.app'
 ];
 
-
-
 app.use(cors({
   origin: function(origin, callback) {
     if (!origin || allowedOrigins.includes(origin)) {
@@ -88,43 +86,55 @@ function detectIntent(message) {
 }
 
 // Static system prompt
-const BASE_PROMPT = `You are SpeskOn, an advanced AI assistant representing Chris, a professional spiritual coach and healer.
+const BASE_PROMPT = `You are SpeskOn, an advanced AI assistant representing our coaching team with two specialized coaches:
+
+**ALAN - Performance Coach** 🎯
+- Specializes in performance coaching, self-leadership, and personal growth
+- Background: Expert in helping individuals build stronger relationships with themselves
+- Focus: Compassion, clarity, courage, and aligning actions with values
+- Approach: Blends performance with zest for life, emphasizes mental health and life balance
+
+**CHRIS - Spiritual Coach & Healer** ✨
+- Specializes in spiritual coaching and energetic healing
+- Background: Started at age 12 studying under a Japanese Shaman, expert in acupressure, biofeedback, Christ Centered Metaphysics
 
 PERSONALITY TRAITS:
-- Warm, empathetic, and spiritually intuitive
+- Warm, empathetic, and intuitive
 - Professional yet approachable
 - Wise with a touch of humor
-- Genuinely caring about people's growt
+- Genuinely caring about people's growth
 - Uses modern, conversational language while maintaining professionalism
 
 RESPONSE RULES:
 
+**PERFORMANCE COACHING (Alan):**
+1. **Pricing Questions**: "$750 CAD/month with 3-4 sessions monthly for at least 6 months - an investment in your transformation and sustainable growth."
+2. **Duration Questions**: "Minimum 6 months with 3-4 sessions per month to build lasting habits and achieve real transformation."
+3. **Background Questions**: "Alan focuses on self-leadership and helping you build a stronger relationship with yourself. His approach blends performance with zest for life, emphasizing mental health, clarity, and courage."
+
+**SPIRITUAL COACHING (Chris):**
 1. **Pricing Questions**: "$100 USD per session - an investment in your spiritual journey and personal transformation."
+2. **Duration Questions**: "6 weeks of weekly one-hour sessions, then we assess progress and adjust based on your needs."
+3. **Background Questions**: "Chris began his journey at age 12 studying under a Japanese Shaman the arts of acupressure. He studied biofeedback, Christ Centered Metaphysics, and energetic healing, guiding people along their spiritual journeys."
 
-2. **Duration Questions**: "I require 6 weeks of weekly one-hour session commitment. After that time, we can assess your progress and adjust any additional sessions according to your needs and desired outcomes."
+**BOOKING/SCHEDULING**: Guide them to provide their name and email address, and mention our easy booking system. Ask which coach they're interested in working with.
 
-3. **Background Questions**: "I began my journey at age 12 studying unde a Japanese Shaman the arts of acupressure. Later, I became fascinated by and studied the art of biofeedback. I expanded my studies into Christ Centered Metaphysics and the arts of energetic healing. Throughout the years, I enhanced my studies with understanding various faith traditions and guiding patrons along their spiritual journeys."
-
-4. **Booking/Scheduling**: Guide them to provide their name and email address, and mention our easy booking system.
-
-5. **Qualification Questions**: "Great question! First, we identify your ideal coaching client. Then, our team contacts prospects through platforms like Facebook, LinkedIn, and Gmail, introducing your offer. Only those who show real interest and align with your services are booked. That means your appointments are with warm, pre-qualified leads who already understand your value."
-
-6. **First-time visitors**: Welcome them warmly and explain the benefits of spiritual coaching.
-
-7. **Returning visitors**: Acknowledge their return and build onn previous conversations.
+**SERVICE DETERMINATION**: 
+- If they mention performance, goals, leadership, confidence, stress management → Alan
+- If they mention spiritual, healing, energy, meditation, metaphysics → Chris
+- If unclear, ask which type of coaching interests them more
 
 STYLE GUIDELINES:
 - Use their name when provided
 - Include relevant emojis sparingly (1-2 per response)
 - Reference previous conversations when relevant
 - Offer personalized insights based on their interests
-- If mood is negative, offer extra empathy and supports
+- If mood is negative, offer extra empathy and support
 - If mood is positive, match their energy with enthusiasm
 - Keep responses conversational and under 150 words
-- Always sign with "- SpeskOn (on behalf of Chris) ✨"
+- Always sign with "- SpeskOn (representing Alan & Chris) 🌟"
 - Add value with each response - whether it's a tip, insight, or encouragement`;
 
-// CORE API: Main chat endpoint
 // CORE API: Main chat endpoint
 app.post('/api/chat', async (req, res) => {
   const start = Date.now();
@@ -270,6 +280,12 @@ function updateUserInterests(userSession, intent, message) {
   if (lowerMessage.includes('energy') && !interests.includes('energy')) {
     interests.push('energy');
   }
+  if (lowerMessage.includes('performance') && !interests.includes('performance')) {
+    interests.push('performance');
+  }
+  if (lowerMessage.includes('leadership') && !interests.includes('leadership')) {
+    interests.push('leadership');
+  }
   
   userSession.interests = interests;
 }
@@ -292,11 +308,10 @@ const transporter = nodemailer.createTransport({
   socketTimeout: 60000,
 });
 
-
 // CORE API: Booking endpoint
 app.post('/api/book-meeting', async (req, res) => {
   try {
-    const { name, email, sessionId, message } = req.body;
+    const { name, email, sessionId, message, coachType = 'spiritual' } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email are required' });
@@ -309,31 +324,44 @@ app.post('/api/book-meeting', async (req, res) => {
     // Update user session with booking info
     if (userSession) {
       userSession.hasBooked = true;
-      userSession.bookingDetails = { name, email, timestamp: new Date().toISOString() };
+      userSession.bookingDetails = { 
+        name, 
+        email, 
+        coachType,
+        timestamp: new Date().toISOString() 
+      };
     }
 
-    // Simplified email sending - removed verification step for speed
+    // Determine coach and service details
+    const isPerformanceCoaching = coachType === 'performance';
+    const coachName = isPerformanceCoaching ? 'Alan' : 'Chris';
+    const serviceType = isPerformanceCoaching ? 'Performance Coaching' : 'Spiritual Coaching';
+    const serviceDetails = isPerformanceCoaching 
+      ? 'Performance Coaching with Alan ($750 CAD/month, 6-month commitment)'
+      : 'Spiritual Coaching with Chris ($100 USD/session, 6-week commitment)';
+
     const personalizedMessage = userSession ? 
-      `Based on our conversation, I believe Chris's spiritual coaching approach will be perfect for your journey.` :
-      `Thank you for your interest in Chris's coaching program!`;
+      `Based on our conversation, I believe ${coachName}'s ${serviceType.toLowerCase()} approach will be perfect for your journey.` :
+      `Thank you for your interest in ${coachName}'s ${serviceType.toLowerCase()} program!`;
 
     const clientEmailOptions = {
-      from: `"Chris Spiritual Coaching" <appointmentstudio1@gmail.com>`,
+      from: `"Alan & Chris Coaching Team" <appointmentstudio1@gmail.com>`,
       to: email,
-      subject: '🌟 Your Spiritual Journey Awaits - Booking Confirmation',
+      subject: `🌟 Your ${serviceType} Journey Awaits - Booking Confirmation`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 15px;">
           <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-            <h2 style="color: #4A90E2; text-align: center; margin-bottom: 20px;">✨ Your Spiritual Journey Begins Here ✨</h2>
+            <h2 style="color: #4A90E2; text-align: center; margin-bottom: 20px;">✨ Your Transformation Journey Begins Here ✨</h2>
             <p style="font-size: 16px; color: #333;">Dear ${name},</p>
             <p style="font-size: 16px; color: #333; line-height: 1.6;">${personalizedMessage}</p>
+            <p style="font-size: 14px; color: #666; margin: 15px 0;"><strong>Service:</strong> ${serviceDetails}</p>
             <p style="font-size: 16px; color: #333; line-height: 1.6;">Complete your booking by clicking the button below:</p>
             <div style="text-align: center; margin: 30px 0;">
               <a href="${schedulingUrl}" style="background: linear-gradient(45deg, #4A90E2, #50E3C2); color: white; padding: 15px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">🗓️ Complete Your Booking</a>
             </div>
             <p style="font-size: 14px; color: #666; text-align: center; margin-top: 20px;">
               Questions? Reply to this email or reach out anytime.<br>
-              <em>- SpeskOn (on behalf of Chris) ✨</em>
+              <em>- SpeskOn (representing Alan & Chris) 🌟</em>
             </p>
           </div>
         </div>
@@ -341,15 +369,17 @@ app.post('/api/book-meeting', async (req, res) => {
     };
 
     const businessEmailOptions = {
-      from: `"Chris Spiritual Coaching" <appointmentstudio1@gmail.com>`,
-      to: 'appointmentstudio1@gmail.com>',
-      subject: '🎯 New Qualified Lead - Meeting Booking Request',
+      from: `"Alan & Chris Coaching Team" <appointmentstudio1@gmail.com>`,
+      to: 'appointmentstudio1@gmail.com',
+      subject: `🎯 New Qualified Lead - ${serviceType} Booking Request`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
           <h2 style="color: #2c3e50; text-align: center;">🎯 New Qualified Lead</h2>
           <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
             <p><strong>👤 Name:</strong> ${name}</p>
             <p><strong>📧 Email:</strong> ${email}</p>
+            <p><strong>🎯 Coach:</strong> ${coachName}</p>
+            <p><strong>🎯 Service Interest:</strong> ${serviceDetails}</p>
             <p><strong>🔗 Booking Link:</strong> <a href="${schedulingUrl}" style="color: #3498db;">${schedulingUrl}</a></p>
             ${message ? `<p><strong>💭 Additional Message:</strong> ${message}</p>` : ''}
           </div>
@@ -366,6 +396,8 @@ app.post('/api/book-meeting', async (req, res) => {
       res.json({
         message: 'Meeting booking initiated successfully! Check your email for the booking link.',
         schedulingUrl,
+        coachType,
+        coachName,
         personalized: !!userSession
       });
     } catch (emailError) {
@@ -373,6 +405,8 @@ app.post('/api/book-meeting', async (req, res) => {
       res.json({
         message: 'Meeting booking link generated successfully! Please use the link below to complete your booking.',
         schedulingUrl,
+        coachType,
+        coachName,
         note: 'Email notification failed, but your booking link is ready.',
       });
     }
@@ -397,8 +431,8 @@ app.post('/api/contact', async (req, res) => {
     }
 
     const businessEmailOptions = {
-      from: `"Chris Spiritual Coaching" <appointmentstudio1@gmail.com>`,
-      to: 'appointmentstudio1@gmail.com>',
+      from: `"Alan & Chris Coaching Team" <appointmentstudio1@gmail.com>`,
+      to: 'appointmentstudio1@gmail.com',
       subject: '📧 New Contact Form Submission',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
@@ -417,7 +451,7 @@ app.post('/api/contact', async (req, res) => {
     };
 
     const clientEmailOptions = {
-      from: `"Chris Spiritual Coaching" <appointmentstudio1@gmail.com>`,
+      from: `"Alan & Chris Coaching Team" <appointmentstudio1@gmail.com>`,
       to: email,
       subject: '🌟 Thank you for reaching out - We received your message!',
       html: `
@@ -426,10 +460,10 @@ app.post('/api/contact', async (req, res) => {
             <h2 style="color: #4A90E2; text-align: center; margin-bottom: 20px;">🌟 Thank You for Connecting!</h2>
             <p style="font-size: 16px; color: #333;">Dear ${name},</p>
             <p style="font-size: 16px; color: #333; line-height: 1.6;">
-              Thank you for reaching out! I've received your message and will respond within 24 hours.
+              Thank you for reaching out! We've received your message and will respond within 24 hours.
             </p>
             <p style="font-size: 16px; color: #4A90E2; font-weight: bold; text-align: center; margin-top: 20px;">
-              - Chris ✨
+              - Alan & Chris 🌟
             </p>
           </div>
         </div>
@@ -456,9 +490,10 @@ app.post('/api/contact', async (req, res) => {
 
 // Start server
 app.get('/', (req, res) => {
-  res.send('✅ SpeskOn Backend is running!');
+  res.send('✅ SpeskOn Backend with Alan (Performance) & Chris (Spiritual) is running!');
 });
+
 app.listen(PORT, () => {
   console.log(`🚀 SpeskOn AI Assistant running on port ${PORT}`);
-  console.log(`🌟 Optimized for speed and stability`);
+  console.log(`🌟 Now featuring Alan (Performance Coach) & Chris (Spiritual Coach)`);
 });
