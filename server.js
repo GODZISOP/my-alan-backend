@@ -86,17 +86,13 @@ function detectIntent(message) {
 }
 
 // Static system prompt
-const BASE_PROMPT = `You are SpeskOn, an advanced AI assistant representing our coaching team with two specialized coaches:
+const BASE_PROMPT = `You are SpeskOn, an advanced AI assistant representing our coaching team with one specialized coach:
 
 **ALAN - Performance Coach** 🎯
 - Specializes in performance coaching, self-leadership, and personal growth
 - Background: Expert in helping individuals build stronger relationships with themselves
 - Focus: Compassion, clarity, courage, and aligning actions with values
 - Approach: Blends performance with zest for life, emphasizes mental health and life balance
-
-**CHRIS - Spiritual Coach & Healer** ✨
-- Specializes in spiritual coaching and energetic healing
-- Background: Started at age 12 studying under a Japanese Shaman, expert in acupressure, biofeedback, Christ Centered Metaphysics
 
 PERSONALITY TRAITS:
 - Warm, empathetic, and intuitive
@@ -112,16 +108,10 @@ RESPONSE RULES:
 2. **Duration Questions**: "Minimum 6 months with 3-4 sessions per month to build lasting habits and achieve real transformation."
 3. **Background Questions**: "Alan focuses on self-leadership and helping you build a stronger relationship with yourself. His approach blends performance with zest for life, emphasizing mental health, clarity, and courage."
 
-**SPIRITUAL COACHING (Chris):**
-1. **Pricing Questions**: "$100 USD per session - an investment in your spiritual journey and personal transformation."
-2. **Duration Questions**: "6 weeks of weekly one-hour sessions, then we assess progress and adjust based on your needs."
-3. **Background Questions**: "Chris began his journey at age 12 studying under a Japanese Shaman the arts of acupressure. He studied biofeedback, Christ Centered Metaphysics, and energetic healing, guiding people along their spiritual journeys."
-
 **BOOKING/SCHEDULING**: Guide them to provide their name and email address, and mention our easy booking system. Ask which coach they're interested in working with.
 
 **SERVICE DETERMINATION**: 
 - If they mention performance, goals, leadership, confidence, stress management → Alan
-- If they mention spiritual, healing, energy, meditation, metaphysics → Chris
 - If unclear, ask which type of coaching interests them more
 
 STYLE GUIDELINES:
@@ -132,7 +122,7 @@ STYLE GUIDELINES:
 - If mood is negative, offer extra empathy and support
 - If mood is positive, match their energy with enthusiasm
 - Keep responses conversational and under 150 words
-- Always sign with "- SpeskOn (representing Alan & Chris) 🌟"
+- Always sign with "- SpeskOn (representing Alan) 🌟"
 - Add value with each response - whether it's a tip, insight, or encouragement`;
 
 // CORE API: Main chat endpoint
@@ -268,18 +258,6 @@ function updateUserInterests(userSession, intent, message) {
   if (intent === 'pricing' && !interests.includes('pricing')) {
     interests.push('pricing');
   }
-  if (lowerMessage.includes('spiritual') && !interests.includes('spiritual')) {
-    interests.push('spiritual');
-  }
-  if (lowerMessage.includes('healing') && !interests.includes('healing')) {
-    interests.push('healing');
-  }
-  if (lowerMessage.includes('meditation') && !interests.includes('meditation')) {
-    interests.push('meditation');
-  }
-  if (lowerMessage.includes('energy') && !interests.includes('energy')) {
-    interests.push('energy');
-  }
   if (lowerMessage.includes('performance') && !interests.includes('performance')) {
     interests.push('performance');
   }
@@ -311,7 +289,7 @@ const transporter = nodemailer.createTransport({
 // CORE API: Booking endpoint
 app.post('/api/book-meeting', async (req, res) => {
   try {
-    const { name, email, sessionId, message, coachType = 'spiritual' } = req.body;
+    const { name, email, sessionId, message, coachType = 'performance' } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({ error: 'Name and email are required' });
@@ -319,7 +297,7 @@ app.post('/api/book-meeting', async (req, res) => {
 
     // Get user session for personalized booking
     const userSession = userSessions.get(sessionId);
-    const schedulingUrl = `https://calendly.com/chris-lightworks/30min/${Math.random().toString(36).substring(7)}`;
+    const schedulingUrl = `https://calendly.com/alan-performance/30min/${Math.random().toString(36).substring(7)}`;
 
     // Update user session with booking info
     if (userSession) {
@@ -332,168 +310,54 @@ app.post('/api/book-meeting', async (req, res) => {
       };
     }
 
-    // Determine coach and service details
-    const isPerformanceCoaching = coachType === 'performance';
-    const coachName = isPerformanceCoaching ? 'Alan' : 'Chris';
-    const serviceType = isPerformanceCoaching ? 'Performance Coaching' : 'Spiritual Coaching';
-    const serviceDetails = isPerformanceCoaching 
-      ? 'Performance Coaching with Alan ($750 CAD/month, 6-month commitment)'
-      : 'Spiritual Coaching with Chris ($100 USD/session, 6-week commitment)';
+    // Coach and service details
+    const coachName = 'Alan';
+    const serviceType = 'Performance Coaching';
+    const serviceDetails = 'Performance Coaching with Alan ($750 CAD/month, 6-month commitment)';
 
     const personalizedMessage = userSession ? 
-      `Based on our conversation, I believe ${coachName}'s ${serviceType.toLowerCase()} approach will be perfect for your journey.` :
-      `Thank you for your interest in ${coachName}'s ${serviceType.toLowerCase()} program!`;
+      `Based on our chat, ${userSession.userName}, you're interested in ${serviceType}.` : 
+      `Thank you for your interest in ${serviceType}.`;
 
-    const clientEmailOptions = {
-      from: `"Alan & Chris Coaching Team" <appointmentstudio1@gmail.com>`,
-      to: email,
-      subject: `🌟 Your ${serviceType} Journey Awaits - Booking Confirmation`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 15px;">
-          <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-            <h2 style="color: #4A90E2; text-align: center; margin-bottom: 20px;">✨ Your Transformation Journey Begins Here ✨</h2>
-            <p style="font-size: 16px; color: #333;">Dear ${name},</p>
-            <p style="font-size: 16px; color: #333; line-height: 1.6;">${personalizedMessage}</p>
-            <p style="font-size: 14px; color: #666; margin: 15px 0;"><strong>Service:</strong> ${serviceDetails}</p>
-            <p style="font-size: 16px; color: #333; line-height: 1.6;">Complete your booking by clicking the button below:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${schedulingUrl}" style="background: linear-gradient(45deg, #4A90E2, #50E3C2); color: white; padding: 15px 30px; text-decoration: none; border-radius: 50px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 5px 15px rgba(0,0,0,0.2);">🗓️ Complete Your Booking</a>
-            </div>
-            <p style="font-size: 14px; color: #666; text-align: center; margin-top: 20px;">
-              Questions? Reply to this email or reach out anytime.<br>
-              <em>- SpeskOn (representing Alan & Chris) 🌟</em>
-            </p>
-          </div>
-        </div>
-      `,
+    const mailOptions = {
+      from: process.env.EMAIL_USER || 'appointmentstudio1@gmail.com',
+      to: 'alan@example.com',  // Update to your contact email
+      subject: `New Booking Request - ${coachName} - ${name}`,
+      text: `
+New booking request details:
+
+Name: ${name}
+Email: ${email}
+Coach: ${coachName}
+Service: ${serviceType}
+
+Message from user:
+${message || 'No additional message'}
+
+${personalizedMessage}
+
+Booking link: ${schedulingUrl}
+
+Best regards,
+SpeskOn AI
+      `
     };
 
-    const businessEmailOptions = {
-      from: `"Alan & Chris Coaching Team" <appointmentstudio1@gmail.com>`,
-      to: 'appointmentstudio1@gmail.com',
-      subject: `🎯 New Qualified Lead - ${serviceType} Booking Request`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
-          <h2 style="color: #2c3e50; text-align: center;">🎯 New Qualified Lead</h2>
-          <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            <p><strong>👤 Name:</strong> ${name}</p>
-            <p><strong>📧 Email:</strong> ${email}</p>
-            <p><strong>🎯 Coach:</strong> ${coachName}</p>
-            <p><strong>🎯 Service Interest:</strong> ${serviceDetails}</p>
-            <p><strong>🔗 Booking Link:</strong> <a href="${schedulingUrl}" style="color: #3498db;">${schedulingUrl}</a></p>
-            ${message ? `<p><strong>💭 Additional Message:</strong> ${message}</p>` : ''}
-          </div>
-        </div>
-      `,
-    };
+    await transporter.sendMail(mailOptions);
 
-    try {
-      await Promise.all([
-        transporter.sendMail(clientEmailOptions),
-        transporter.sendMail(businessEmailOptions),
-      ]);
-
-      res.json({
-        message: 'Meeting booking initiated successfully! Check your email for the booking link.',
-        schedulingUrl,
-        coachType,
-        coachName,
-        personalized: !!userSession
-      });
-    } catch (emailError) {
-      console.error('Email sending failed:', emailError);
-      res.json({
-        message: 'Meeting booking link generated successfully! Please use the link below to complete your booking.',
-        schedulingUrl,
-        coachType,
-        coachName,
-        note: 'Email notification failed, but your booking link is ready.',
-      });
-    }
-  } catch (error) {
-    console.error('Error booking meeting:', error);
-    res.status(500).json({ error: 'Failed to book meeting. Please try again.' });
-  }
-});
-
-// CORE API: Contact form
-app.post('/api/contact', async (req, res) => {
-  try {
-    const { name, email, message } = req.body;
-
-    if (!name || !email || !message) {
-      return res.status(400).json({ error: 'Name, email, and message are required' });
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Please provide a valid email address' });
-    }
-
-    const businessEmailOptions = {
-      from: `"Alan & Chris Coaching Team" <appointmentstudio1@gmail.com>`,
-      to: 'appointmentstudio1@gmail.com',
-      subject: '📧 New Contact Form Submission',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px; border-radius: 10px;">
-          <h2 style="color: #2c3e50; text-align: center; margin-bottom: 30px;">📧 New Contact Form Submission</h2>
-          <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            <p><strong>👤 Name:</strong> ${name}</p>
-            <p><strong>📧 Email:</strong> ${email}</p>
-            <p><strong>⏰ Received:</strong> ${new Date().toLocaleString()}</p>
-            <h3 style="color: #4A90E2; margin-top: 30px;">💬 Message:</h3>
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #4A90E2;">
-              ${message.replace(/\n/g, '<br>')}
-            </div>
-          </div>
-        </div>
-      `,
-    };
-
-    const clientEmailOptions = {
-      from: `"Alan & Chris Coaching Team" <appointmentstudio1@gmail.com>`,
-      to: email,
-      subject: '🌟 Thank you for reaching out - We received your message!',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 15px;">
-          <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-            <h2 style="color: #4A90E2; text-align: center; margin-bottom: 20px;">🌟 Thank You for Connecting!</h2>
-            <p style="font-size: 16px; color: #333;">Dear ${name},</p>
-            <p style="font-size: 16px; color: #333; line-height: 1.6;">
-              Thank you for reaching out! We've received your message and will respond within 24 hours.
-            </p>
-            <p style="font-size: 16px; color: #4A90E2; font-weight: bold; text-align: center; margin-top: 20px;">
-              - Alan & Chris 🌟
-            </p>
-          </div>
-        </div>
-      `,
-    };
-
-    await Promise.all([
-      transporter.sendMail(businessEmailOptions),
-      transporter.sendMail(clientEmailOptions),
-    ]);
-
-    return res.status(200).json({
-      message: 'Message sent successfully! You will receive a confirmation email shortly.',
-      success: true
+    res.status(200).json({
+      message: `Booking request sent successfully. You can also book directly here: ${schedulingUrl}`,
+      schedulingUrl
     });
 
-  } catch (error) {
-    console.error('Contact Form Error:', error);
-    return res.status(500).json({
-      error: 'Internal server error. Please try again later.',
-    });
-  }
-});
+    console.log(`[Booking] Booking request email sent for ${name} to ${coachName}`);
 
-// Start server
-app.get('/', (req, res) => {
-  res.send('✅ SpeskOn Backend with Alan (Performance) & Chris (Spiritual) is running!');
+  } catch (error) {
+    console.error('Error processing booking:', error);
+    res.status(500).json({ error: 'Failed to send booking request', details: error.message });
+  }
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 SpeskOn AI Assistant running on port ${PORT}`);
-  console.log(`🌟 Now featuring Alan (Performance Coach) & Chris (Spiritual Coach)`);
+  console.log(`SpeskOn Performance Coach backend running on port ${PORT}`);
 });
