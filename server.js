@@ -361,38 +361,78 @@ SpeskOn AI
 app.post('/api/contact', async (req, res) => {
   const { name, email, message } = req.body;
 
+  // Input validation
   if (!name || !email || !message) {
     return res.status(400).json({ error: 'Name, email, and message are required.' });
   }
 
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Please provide a valid email address.' });
+  }
+
   try {
+    // Prepare email content with HTML formatting
     const mailOptions = {
       from: 'appointmentstudio1@gmail.com',
       to: 'appointmentstudio1@gmail.com',
       subject: `New Contact Form Submission from ${name}`,
-      text: `
-You received a new message via the contact form:
-
-Name: ${name}
-Email: ${email}
-
-Message:
-${message}
-
-Sent via SpeskOn Contact Form.
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2 style="color: #2c3e50;">New Contact Form Submission</h2>
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Message:</strong></p>
+          <div style="background-color: #f4f4f4; padding: 10px; border-radius: 5px; margin-top: 10px;">
+            ${message}
+          </div>
+          <p style="font-size: 0.9em; color: #7f8c8d; margin-top: 20px;">
+            Sent via SpeskOn Contact Form
+          </p>
+        </div>
       `
     };
 
+    // Send the email to the admin
     await transporter.sendMail(mailOptions);
 
+    // Optionally, send a confirmation email to the user
+    const confirmationMailOptions = {
+      from: 'appointmentstudio1@gmail.com',
+      to: email,
+      subject: 'Thank you for contacting us!',
+      html: `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+          <h2 style="color: #2c3e50;">Thank you for reaching out, ${name}!</h2>
+          <p>We have received your message and will get back to you as soon as possible.</p>
+          <p><strong>Your Message:</strong></p>
+          <div style="background-color: #f4f4f4; padding: 10px; border-radius: 5px; margin-top: 10px;">
+            ${message}
+          </div>
+          <p style="font-size: 0.9em; color: #7f8c8d; margin-top: 20px;">
+            If you need immediate assistance, please contact us at <strong>appointmentstudio1@gmail.com</strong>.
+          </p>
+        </div>
+      `
+    };
+
+    await transporter.sendMail(confirmationMailOptions);
+
+    // Send response to the user
     res.status(200).json({ message: 'Your message has been sent successfully!' });
     console.log(`[Contact] Message received from ${name} <${email}>`);
+    
   } catch (error) {
     console.error('Error sending contact message:', error);
-    res.status(500).json({ error: 'Failed to send message', details: error.message });
+    
+    // Handle errors more explicitly
+    res.status(500).json({
+      error: 'Failed to send message. Please try again later.',
+      details: error.message,
+    });
   }
 });
-
 
 app.listen(PORT, () => {
   console.log(`SpeskOn Performance Coach backend running on port ${PORT}`);
