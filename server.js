@@ -357,6 +357,42 @@ SpeskOn AI
     res.status(500).json({ error: 'Failed to send booking request', details: error.message });
   }
 });
+// New Contact Form Endpoint
+app.post('/api/contact', async (req, res) => {
+  const { name, email, message } = req.body;
+
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: 'Name, email, and message are required.' });
+  }
+
+  try {
+    const mailOptions = {
+      from: 'appointmentstudio1@gmail.com',
+      to: 'appointmentstudio1@gmail.com',
+      subject: `New Contact Form Submission from ${name}`,
+      text: `
+You received a new message via the contact form:
+
+Name: ${name}
+Email: ${email}
+
+Message:
+${message}
+
+Sent via SpeskOn Contact Form.
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json({ message: 'Your message has been sent successfully!' });
+    console.log(`[Contact] Message received from ${name} <${email}>`);
+  } catch (error) {
+    console.error('Error sending contact message:', error);
+    res.status(500).json({ error: 'Failed to send message', details: error.message });
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`SpeskOn Performance Coach backend running on port ${PORT}`);
