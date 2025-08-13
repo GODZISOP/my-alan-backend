@@ -358,196 +358,41 @@ SpeskOn AI
   }
 });
 // New Contact Form Endpoint
-app.post('/api/contact', contactLimiter, async (req, res) => {
-  const start = Date.now();
-  
+app.post('/api/contact', async (req, res) => {
+  const { name, email, message } = req.body;
+
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: 'Name, email, and message are required.' });
+  }
+
   try {
-    let { name, email, message, phone, subject, preferredContact } = req.body;
-
-    // Enhanced validation
-    name = sanitizeInput(name, 100);
-    email = sanitizeInput(email, 254);
-    message = sanitizeInput(message, 2000);
-    phone = sanitizeInput(phone, 20);
-    subject = sanitizeInput(subject, 200) || 'New Contact Form Submission';
-    preferredContact = sanitizeInput(preferredContact, 20) || 'email';
-
-    const validationErrors = [];
-    
-    if (!name || name.length < 2) {
-      validationErrors.push('Please provide your full name (at least 2 characters)');
-    }
-    
-    if (!email || !validateEmail(email)) {
-      validationErrors.push('Please provide a valid email address');
-    }
-    
-    if (!message || message.length < 10) {
-      validationErrors.push('Please provide a detailed message (at least 10 characters)');
-    }
-    
-    if (phone && !/^[\+]?[\d\s\-\(\)]{10,}$/.test(phone)) {
-      validationErrors.push('Please provide a valid phone number');
-    }
-
-    if (validationErrors.length > 0) {
-      return res.status(400).json({ 
-        error: 'Please correct the following issues:',
-        validationErrors,
-        code: 'VALIDATION_ERROR'
-      });
-    }
-
-    // Check for duplicate submissions
-    const submissionKey = `${email}_${Date.now() - (5 * 60 * 1000)}`; // 5 minute window
-    const existingSubmissions = Array.from(contactSubmissions.keys())
-      .filter(key => key.startsWith(email) && (Date.now() - parseInt(key.split('_')[1])) < 300000);
-    
-    if (existingSubmissions.length > 0) {
-      return res.status(429).json({ 
-        error: 'You recently submitted a message. Please wait 5 minutes before submitting again.',
-        code: 'DUPLICATE_SUBMISSION'
-      });
-    }
-
-    // Store submission
-    contactSubmissions.set(`${email}_${Date.now()}`, {
-      name, email, message, phone, subject, preferredContact,
-      timestamp: new Date().toISOString(),
-      ip: req.ip
-    });
-
-    // Clean old submissions (older than 1 hour)
-    const oneHourAgo = Date.now() - (60 * 60 * 1000);
-    for (const [key] of contactSubmissions) {
-      const timestamp = parseInt(key.split('_')[1]);
-      if (timestamp < oneHourAgo) {
-        contactSubmissions.delete(key);
-      }
-    }
-
-    // Enhanced email content
-    const htmlContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 10px;">
-        🌟 New Contact Form Submission - Alan Performance Coaching
-      </h2>
-      
-      <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="color: #374151; margin-top: 0;">Contact Details</h3>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> <a href="mailto:${email}">${email}</a></p>
-        ${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ''}
-        <p><strong>Preferred Contact:</strong> ${preferredContact}</p>
-        <p><strong>Subject:</strong> ${subject}</p>
-      </div>
-
-      <div style="background-color: #ffffff; padding: 20px; border-left: 4px solid #2563eb; margin: 20px 0;">
-        <h3 style="color: #374151; margin-top: 0;">Message</h3>
-        <p style="line-height: 1.6; white-space: pre-wrap;">${message}</p>
-      </div>
-
-      <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; font-size: 0.9em; color: #6b7280;">
-        <p><strong>Submission Details:</strong></p>
-        <p>Time: ${new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto' })} (EST)</p>
-        <p>Source: SpeskOn Contact Form</p>
-        <p>IP: ${req.ip}</p>
-      </div>
-
-      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 0.8em;">
-        <p>This message was sent through the Alan Performance Coaching website contact form.</p>
-      </div>
-    </div>`;
-
     const mailOptions = {
-      from: `"SpeskOn Contact Form" <${process.env.EMAIL_USER || 'appointmentstudio1@gmail.com'}>`,
-      to: process.env.ALAN_EMAIL || 'appointmentstudio1@gmail.com',
-      subject: `🌟 ${subject} - From ${name}`,
+      from: 'appointmentstudio1@gmail.com',
+      to: 'appointmentstudio1@gmail.com',
+      subject: `New Contact Form Submission from ${name}`,
       text: `
-NEW CONTACT FORM SUBMISSION - ALAN PERFORMANCE COACHING
+You received a new message via the contact form:
 
-From: ${name}
+Name: ${name}
 Email: ${email}
-${phone ? `Phone: ${phone}` : ''}
-Preferred Contact: ${preferredContact}
-Subject: ${subject}
 
 Message:
 ${message}
 
----
-Submitted: ${new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto' })} EST
-Source: SpeskOn Contact Form
-IP: ${req.ip}
-      `,
-      html: htmlContent,
-      replyTo: email
+Sent via SpeskOn Contact Form.
+      `
     };
 
-    // Auto-reply to user
-    const userReplyOptions = {
-      from: `"Alan Performance Coaching" <${process.env.EMAIL_USER || 'appointmentstudio1@gmail.com'}>`,
-      to: email,
-      subject: `Thank you for contacting Alan Performance Coaching, ${name}!`,
-      html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">Thank you for reaching out, ${name}! 🌟</h2>
-        
-        <p>Your message has been received and I'm excited to connect with you about your performance coaching journey.</p>
-        
-        <div style="background-color: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2563eb;">
-          <h3 style="color: #1e40af; margin-top: 0;">What happens next?</h3>
-          <ul style="line-height: 1.8;">
-            <li>I'll personally review your message within 24 hours</li>
-            <li>You'll receive a thoughtful response addressing your specific needs</li>
-            <li>If you're interested in coaching, I'll offer you a complimentary discovery session</li>
-          </ul>
-        </div>
+    await transporter.sendMail(mailOptions);
 
-        <p><strong>Your message summary:</strong></p>
-        <div style="background-color: #f9fafb; padding: 15px; border-radius: 6px;">
-          <p><em>"${message.substring(0, 200)}${message.length > 200 ? '...' : ''}"</em></p>
-        </div>
-
-        <p>I'm looking forward to supporting you in achieving breakthrough performance and authentic success!</p>
-
-        <p>Best regards,<br>
-        <strong>Alan</strong><br>
-        Performance Coach<br>
-        📧 ${process.env.ALAN_EMAIL || 'appointmentstudio1@gmail.com'}<br>
-        🌐 <a href="https://alan-three.vercel.app">Visit our website</a></p>
-
-        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 0.8em;">
-          <p>This is an automated confirmation. Please don't reply to this email.</p>
-        </div>
-      </div>`
-    };
-
-    // Send both emails
-    await Promise.all([
-      transporter.sendMail(mailOptions),
-      transporter.sendMail(userReplyOptions)
-    ]);
-
-    res.status(200).json({ 
-      message: `Thank you, ${name}! Your message has been sent successfully. You should receive a confirmation email shortly, and Alan will respond within 24 hours.`,
-      status: 'success',
-      processingTime: Date.now() - start,
-      autoReply: true
-    });
-
-    console.log(`[Contact] New submission from ${name} <${email}> processed in ${Date.now() - start}ms`);
-
+    res.status(200).json({ message: 'Your message has been sent successfully!' });
+    console.log(`[Contact] Message received from ${name} <${email}>`);
   } catch (error) {
-    console.error('Contact form error:', error);
-    
-    res.status(500).json({ 
-      error: 'We apologize, but there was an issue sending your message. Please try again or contact us directly.',
-      code: 'CONTACT_ERROR',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    console.error('Error sending contact message:', error);
+    res.status(500).json({ error: 'Failed to send message', details: error.message });
   }
 });
+
 
 app.listen(PORT, () => {
   console.log(`SpeskOn Performance Coach backend running on port ${PORT}`);
