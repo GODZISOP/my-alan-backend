@@ -375,8 +375,8 @@ app.post('/api/contact', async (req, res) => {
   try {
     // Prepare email content with HTML formatting
     const mailOptions = {
-      from: 'appointmentstudio1@gmail.com',
-      to: 'appointmentstudio1@gmail.com',
+      from: 'chris.verschueren@hotmail.com',
+      to: 'chris.verschueren@hotmail.com',
       subject: `New Contact Form Submission from ${name}`,
       html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -399,7 +399,7 @@ app.post('/api/contact', async (req, res) => {
 
     // Optionally, send a confirmation email to the user
     const confirmationMailOptions = {
-      from: 'appointmentstudio1@gmail.com',
+      from: 'chris.verschueren@hotmail.com',
       to: email,
       subject: 'Thank you for contacting us!',
       html: `
