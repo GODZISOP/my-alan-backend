@@ -320,8 +320,8 @@ app.post('/api/book-meeting', async (req, res) => {
       `Thank you for your interest in ${serviceType}.`;
 
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'appointmentstudio1@gmail.com',
-      to: 'alan@example.com',  // Update to your contact email
+      from: process.env.EMAIL_USER || 'alan.verbeke@me.com',
+      to: 'alan.verbeke@me.com',  // Update to your contact email
       subject: `New Booking Request - ${coachName} - ${name}`,
       text: `
 New booking request details:
@@ -375,8 +375,8 @@ app.post('/api/contact', async (req, res) => {
   try {
     // Prepare email content with HTML formatting
     const mailOptions = {
-      from: 'chris.verschueren@hotmail.com',
-      to: 'chris.verschueren@hotmail.com',
+      from: 'alan.verbeke@me.com',
+      to: 'alan.verbeke@me.com',
       subject: `New Contact Form Submission from ${name}`,
       html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
@@ -399,7 +399,7 @@ app.post('/api/contact', async (req, res) => {
 
     // Optionally, send a confirmation email to the user
     const confirmationMailOptions = {
-      from: 'chris.verschueren@hotmail.com',
+      from: 'alan.verbeke@me.com',
       to: email,
       subject: 'Thank you for contacting us!',
       html: `
