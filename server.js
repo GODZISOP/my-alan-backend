@@ -18,7 +18,7 @@ const conversationHistory = new Map();
 
 // Middleware
 const allowedOrigins = [
-  'https://albatross-coaching.vercel.app/'
+  'https://albatross-coaching.vercel.app'
 ];
 
 app.use(cors({
